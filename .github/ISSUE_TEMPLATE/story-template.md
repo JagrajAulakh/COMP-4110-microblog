@@ -1,13 +1,18 @@
 ---
 name: Story template
 about: Template that describes a user story
-title: "[STORY] "
+title: "[STORY] As a user, ..."
 labels: user story
 assignees: ''
 
 ---
 
-# [TITLE]
 Epic: ##
 
-## Description
+## Estimate
+
+## Acceptance Criteria
+
+```gherkin
+
+```
