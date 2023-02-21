@@ -1,3 +1,5 @@
 {
-	"venv": "venv"
+  "venvPath": ".",
+  "venv": "venv",
+  "useLibraryCodeForTypes": true
 }
