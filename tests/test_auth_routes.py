@@ -31,12 +31,13 @@ class TestAuthRoutes:
         db.session.commit()
         return u1
 
-    # checking if we are sent to login page
-    def test_login(self, client, create_user):
+    def test_login_get(self, client, create_user):
         resp = client.get("/auth/login")
         assert resp.status_code is 200
         assert b"Sign In" in resp.data
         assert b"Register" in resp.data
+
+    def test_login_invalid_password(self, client, create_user):
         resp = client.post(
             "/auth/login",
             data={
@@ -46,7 +47,8 @@ class TestAuthRoutes:
         )
         assert resp.status_code == 302
         assert "/auth/login" in resp.headers.get("Location")
-        print(resp.headers.get("Location"))
+
+    def test_login_valid_user(self, client, create_user):
         resp = client.post(
             "/auth/login",
             data={
