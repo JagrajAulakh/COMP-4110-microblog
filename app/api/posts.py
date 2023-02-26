@@ -1,6 +1,6 @@
 from flask import jsonify, request, url_for
 from app import db
-from app.api.errors import bad_request
+from app.api.errors import bad_request, error_response
 from app.models import Post, User
 from app.api import bp
 from app.api.auth import token_auth
@@ -60,7 +60,7 @@ def posts(id):
 
         post = user.posts.filter_by(id=int(data["id"])).first()
         if post is None:
-            return bad_request("post with id %s not found from user %d" %
+            return error_response(404, "post with id %s not found from user %d" %
                                (data["id"], user.id))
 
         db.session.delete(post)
