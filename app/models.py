@@ -6,6 +6,7 @@ import os
 from time import time
 from flask import current_app, url_for
 from flask_login import UserMixin
+from langdetect import detect
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
 import redis
@@ -240,13 +241,28 @@ def load_user(id):
     return User.query.get(int(id))
 
 
-class Post(SearchableMixin, db.Model):
+class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     __searchable__ = ['body']
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     language = db.Column(db.String(5))
+
+    def to_dict(self):
+        data = {
+            'id': self.id,
+            'body': self.body,
+            'timestamp': self.timestamp,
+            'user_id': self.user_id,
+            'language': self.language,
+        }
+        return data
+
+    def from_dict(self, data):
+        for field in ["body", "user_id"]:
+            setattr(self, field, data[field])
+        setattr(self, "language", detect(data["body"]))
 
     def __repr__(self):
         return '<Post {}>'.format(self.body)
