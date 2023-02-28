@@ -43,34 +43,47 @@ class TestPostAPI:
         self.app_context.pop()
 
     @pytest.fixture()
-    def user(self):
+    def user1(self):
         user = User(username="Joe", email="joe@joe.com")
         db.session.add(user)
         db.session.commit()
         yield user
 
     @pytest.fixture()
-    def headers(self, user):
-        headers = {"Authorization": "Bearer {}".format(user.get_token())}
-        return headers
-
-    def test_get_posts(self, user, headers):
-        response = self.client.get("/api/posts", headers=headers)
-        assert response.data
-        assert response.status_code == 200
-
-        d = json.loads(response.data.decode())
-        assert len(d["items"]) == 0
-
+    def post1(self, user1):
         post = Post(body="I think im the best one on this site frfr on G",
-                    user_id=user.id)
+                    user_id=user1.id)
         db.session.add(post)
         db.session.commit()
-        assert Post.query.first() == post
+        yield post
+
+    @pytest.fixture()
+    def headers(self, user1):
+        headers = {"Authorization": "Bearer {}".format(user1.get_token())}
+        return headers
+
+    def test_get_posts_empty(self, headers):
+        response = self.client.get("/api/posts", headers=headers)
+        assert response.data
+        assert response.status_code == 200
+
+        d = response.get_json()
+        assert len(d["items"]) == 0
+
+    def test_get_posts_not_empty(self, post1, headers):
+        assert Post.query.first() == post1
 
         response = self.client.get("/api/posts", headers=headers)
         assert response.status_code == 200
         assert response.data
-        d = json.loads(response.data.decode())
+        d = response.get_json()
         assert len(d["items"]) == 1
+
+    def test_get_post_invalid_user(self, headers):
+        response = self.client.get("/api/posts/21380", headers=headers)
+        assert response.status_code == 400
+
+    def test_get_post_valid_user(self, user1, headers):
+        response = self.client.get("/api/posts/1", data={"id": user1.id, "page": 1, "per_page": 10}, headers=headers)
+        assert response.status_code == 200
 
