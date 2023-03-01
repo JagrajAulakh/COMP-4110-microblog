@@ -6,11 +6,11 @@
         <!-- <button type="button" class="btn-close" onclick="closeModal()">Close modal</button> -->
       </div>
       <div class="modal-body">
-		  Are you sure you want to delete post {{ post.id }}?
+          Are you sure you want to delete post {{ post.id }}?
       </div>
       <div class="modal-footer">
-		  <button type="button" class="btn btn-secondary" onclick="closeModal({{ post.id }})">Close</button>
-		  <button type="button" class="btn btn-danger" onclick="deletePost({{ post.id }})">DELETE!</button>
+          <button type="button" class="btn btn-secondary" onclick="closeModal({{ post.id }})">Close</button>
+          <button type="button" class="btn btn-danger" onclick="deletePost({{ post.id }})">DELETE!</button>
       </div>
     </div>
   </div>
@@ -45,23 +45,36 @@
                 </span>
                 {% endif %}
                 <br>
-				{% if current_user and post.author.id == current_user.id %}
-				<button type="button" class="btn btn-danger" onclick="launchModal({{ post.id }})">
-					Delete post
-				</button>
-				{% endif %}
+                {% if current_user and post.author.id == current_user.id %}
+                <button type="button" class="btn btn-danger" onclick="launchModal({{ post.id }})">
+                    Delete post
+                </button>
+                {% endif %}
             </td>
         </tr>
     </table>
-	<script>
-		function launchModal(id) {
-			$(`#deleteModal${id}`).modal();
-		}
-		function closeModal(id) {
-			$(`#deleteModal${id}`).modal('hide');
-		}
-		function deletePost(id) {
-			console.log(`delete post ${id}`);
-			closeModal(id);
-		}
-	</script>
+    <script>
+        function launchModal(id) {
+            $(`#deleteModal${id}`).modal();
+        }
+        function closeModal(id) {
+            $(`#deleteModal${id}`).modal('hide');
+        }
+        function deletePost(id) {
+            console.log(`delete post ${id}`);
+
+            fetch("/api/posts/{{ current_user.id }}", {
+                method: "DELETE",
+                body: JSON.stringify({id: id}),
+                headers: {
+                    "Authorization": "Bearer {{ current_user.get_token() }}",
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then((data) => {
+                    console.log(data);
+                    window.location.reload()
+                })
+            closeModal(id);
+        }
+    </script>
