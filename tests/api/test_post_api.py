@@ -1,10 +1,5 @@
-from base64 import b64encode
 import pytest
-import json
-from datetime import datetime, timedelta
-from flask import testing
 
-from werkzeug.datastructures import Headers
 from app import create_app, db
 from app.models import User, Post
 from config import Config
@@ -14,16 +9,6 @@ class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     ELASTICSEARCH_URL = None
-
-
-# class TestClient(testing.FlaskClient):
-#     def open(self, *args, **kwargs):
-#         api_key_headers = Headers({"Authorization": "Bearer %s" % kwargs["token"]})
-#         headers = kwargs.pop("headers", Headers())
-#         headers.extend(api_key_headers)
-#         kwargs["headers"] = headers
-#         return super().open(*args, **kwargs)
-#
 
 
 class TestPostAPI:
@@ -50,9 +35,17 @@ class TestPostAPI:
         yield user
 
     @pytest.fixture()
+    def user2(self):
+        user = User(username="Mama", email="mama@mama.com")
+        db.session.add(user)
+        db.session.commit()
+        yield user
+
+    @pytest.fixture()
     def post1(self, user1):
-        post = Post(body="I think im the best one on this site frfr on G",
-                    user_id=user1.id)
+        post = Post(
+            body="I think im the best one on this site frfr on G", user_id=user1.id
+        )
         db.session.add(post)
         db.session.commit()
         yield post
@@ -78,12 +71,70 @@ class TestPostAPI:
         assert response.data
         d = response.get_json()
         assert len(d["items"]) == 1
+        assert d["items"][0]["id"] == post1.id
 
     def test_get_post_invalid_user(self, headers):
         response = self.client.get("/api/posts/21380", headers=headers)
         assert response.status_code == 400
 
     def test_get_post_valid_user(self, user1, headers):
-        response = self.client.get("/api/posts/1", data={"id": user1.id, "page": 1, "per_page": 10}, headers=headers)
+        response = self.client.get(
+            "/api/posts/%d" % user1.id,
+            headers=headers,
+        )
         assert response.status_code == 200
 
+    def test_post_post_invalid_user(self, headers):
+        response = self.client.post(
+            "/api/posts/1000",
+            json={"body": "This is a test post by user 1"},
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+
+    def test_post_post_invalid_user(self, headers):
+        old_len = len(Post.query.all())
+
+        response = self.client.post(
+            "/api/posts/1000",
+            json={"body": "This is a test post by user 1"},
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert len(Post.query.all()) == old_len
+
+    def test_post_post_valid_user(self, user1, headers):
+        old_len = len(Post.query.all())
+
+        response = self.client.post(
+            "/api/posts/%d" % user1.id,
+            json={"body": "This is a test post by user 1"},
+            headers=headers,
+        )
+
+        assert response.status_code == 201
+        assert len(Post.query.all()) == old_len + 1
+
+    def test_post_post_no_body(self, user1, headers):
+        response = self.client.post(
+            "/api/posts/%d" % user1.id,
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+
+    def test_post_post_wrong_user(self, user1, user2, headers):
+        assert user1.id != user2.id
+
+        response = self.client.post(
+            "/api/posts/%d" % user2.id,
+            json={
+                "body": "I'm posting as another user that I am not authorized to post as"
+            },
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert "permission" in response.data.decode("utf-8").lower()
