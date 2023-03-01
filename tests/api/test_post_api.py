@@ -118,12 +118,14 @@ class TestPostAPI:
         assert len(Post.query.all()) == old_len + 1
 
     def test_post_post_no_body(self, user1, headers):
+        old_len = len(Post.query.all())
         response = self.client.post(
             "/api/posts/%d" % user1.id,
             headers=headers,
         )
 
         assert response.status_code == 400
+        assert len(Post.query.all()) == old_len
 
     def test_post_post_wrong_user(self, user1, user2, headers):
         assert user1.id != user2.id
@@ -138,3 +140,54 @@ class TestPostAPI:
 
         assert response.status_code == 400
         assert "permission" in response.data.decode("utf-8").lower()
+
+    def test_delete_post_invalid_user(self, post1, headers):
+        old_len = len(Post.query.all())
+
+        response = self.client.delete(
+            "api/posts/100", json={"id": post1.id}, headers=headers
+        )
+
+        assert response.status_code == 400
+        assert len(Post.query.all()) == old_len
+
+    def test_delete_post_valid_user(self, user1, post1, headers):
+        old_len = len(Post.query.all())
+
+        response = self.client.delete(
+            "api/posts/%d" % user1.id, json={"id": post1.id}, headers=headers
+        )
+
+        assert response.status_code == 200
+        assert len(Post.query.all()) == old_len - 1
+        assert response.get_json()["id"] == post1.id
+
+    def test_delete_post_no_id(self, user1, post1, headers):
+        old_len = len(Post.query.all())
+
+        response = self.client.delete("api/posts/%d" % user1.id, headers=headers)
+
+        assert response.status_code == 400
+        assert len(Post.query.all()) == old_len
+
+    def test_delete_post_wrong_user(self, user1, user2, post1, headers):
+        assert user1.id != user2.id
+
+        response = self.client.delete(
+            "/api/posts/%d" % user2.id,
+            json={"id": post1.id},
+            headers=headers,
+        )
+
+        assert response.status_code == 400
+        assert "permission" in response.data.decode("utf-8").lower()
+
+    def test_delete_post_invalid_post_id(self, user1, headers):
+        response = self.client.delete(
+            "/api/posts/%d" % user1.id,
+            json={"id": 1000},
+            headers=headers,
+        )
+
+        assert response.status_code == 404
+        assert "not found" in response.data.decode("utf-8").lower()
