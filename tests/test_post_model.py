@@ -62,4 +62,3 @@ class TestPostModel:
 
         assert data['body'] == new_post.body
         assert data['user_id'] == new_user.id
-        print(data)
