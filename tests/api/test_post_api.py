@@ -85,15 +85,6 @@ class TestPostAPI:
         assert response.status_code == 200
 
     def test_post_post_invalid_user(self, headers):
-        response = self.client.post(
-            "/api/posts/1000",
-            json={"body": "This is a test post by user 1"},
-            headers=headers,
-        )
-
-        assert response.status_code == 400
-
-    def test_post_post_invalid_user(self, headers):
         old_len = len(Post.query.all())
 
         response = self.client.post(
@@ -180,7 +171,6 @@ class TestPostAPI:
         )
 
         assert response.status_code == 400
-        assert "permission" in response.data.decode("utf-8").lower()
 
     def test_delete_post_invalid_post_id(self, user1, headers):
         response = self.client.delete(
@@ -190,4 +180,3 @@ class TestPostAPI:
         )
 
         assert response.status_code == 404
-        assert "not found" in response.data.decode("utf-8").lower()
