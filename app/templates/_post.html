@@ -52,7 +52,14 @@
                 {% endif %}
             </td>
             <td width="70px">
-                Likes: {{ post.likes.count() }}
+                <button type="button" class="btn btn-secondary">
+                    <img
+                    id="{{ post.id }}-up-arrow"
+                    src="../static/up-arrow-{% if current_user.liked.filter_by(id=post.id).first() %}red{% else %}dark{% endif %}.svg"
+                    alt="up-arrow"
+                    width="20px">
+                    {{ post.likes.count() }}
+                </button>
             </td>
         </tr>
     </table>
