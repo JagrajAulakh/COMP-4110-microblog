@@ -282,6 +282,7 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
             'timestamp': self.timestamp,
             'user_id': self.user_id,
             'language': self.language,
+            'likes': self.likes.count()
         }
         return data
 
