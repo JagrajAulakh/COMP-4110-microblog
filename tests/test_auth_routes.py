@@ -2,7 +2,9 @@ import pytest
 from config import Config
 from app import create_app, db
 from app.models import User
-
+from flask_login import login_user, current_user
+from pytest_mock import mocker
+import flask_login
 
 class TestConfig(Config):
     TESTING = True
@@ -16,6 +18,8 @@ class TestAuthRoutes:
     def client(self):
         self.app = create_app(TestConfig)
         self.app_context = self.app.app_context()
+        self.app_test_request_context = self.app.test_request_context()
+        self.app_test_request_context.push()
         self.app_context.push()
         db.create_all()
         yield self.app.test_client()
@@ -33,7 +37,7 @@ class TestAuthRoutes:
 
     def test_login_get(self, client, create_user):
         resp = client.get("/auth/login")
-        assert resp.status_code is 200
+        assert resp.status_code == 200
         assert b"Sign In" in resp.data
         assert b"Register" in resp.data
 
@@ -92,9 +96,54 @@ class TestAuthRoutes:
 
     def test_logout(self, client, create_user):
         resp = client.get("/auth/logout")
-        print(resp.headers.get("Location"))
-        print(resp.status_code)
         assert resp.status_code == 302
         assert "index" in resp.headers.get("Location")
 
 
+    def test_register_get(self, client):
+    	resp = client.get("/auth/register")
+    	print(resp.status_code)
+    	assert resp.status_code == 200
+
+
+    def test_register_create_user(self, client):
+        resp = client.post(
+            "/auth/register",
+            data={
+                "username": "wannabe",
+                "email": "wannabe@gmail.com",
+                "password": "batata",
+                "password2": "batata",
+            },
+        )
+        print(resp.status_code)
+
+    def test_register_redirect(self, mocker, client, create_user):
+        resp = client.post(
+            "/auth/login",
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
+        resp = client.post(
+            "/auth/register",
+            data={
+                "username": create_user.username,
+                "email": create_user.email,
+                "password": "batata",
+                "password2": "batata",
+            },)
+        print(resp.data)
+        assert resp.status_code == 302
+       	assert "/index" in resp.headers.get("Location")
+
+
+
+    def test_reset_password(self, client, create_user):
+        resp = client.post(
+            "/auth/reset_password_request",
+            data={
+                "email": create_user.email
+            },)
+        assert resp.status_code == 302
