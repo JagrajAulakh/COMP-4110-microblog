@@ -181,7 +181,6 @@ class TestUserModel:
         token = new_user.get_token()
         assert token is not None
         new_token = new_user.get_token()
-        assert token is not None
         assert new_token == token
         assert datetime.utcnow() < new_user.token_expiration
 

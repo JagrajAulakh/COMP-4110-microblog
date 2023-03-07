@@ -53,7 +53,7 @@ class TestPostModel:
 
         p.from_dict(data)
 
-        assert "walter white" in p.body.lower()
+        assert data["body"] == p.body
         assert p.user_id == new_user.id
 
 
