@@ -209,5 +209,30 @@ class TestUserModel:
 
         assert User.check_token(new_user.get_token()) is None
 
+    @pytest.fixture()
+    def new_post(self, new_user):
+        p = Post(
+                user_id = new_user.id,
+                body=f"This is a new post by user {new_user.username}"
+                )
+        yield p
 
+    def test_user_like_post(self, new_user, new_post):
+        user_liked = new_user.liked.count()
+        post_likes = new_post.likes.count()
 
+        new_user.like(new_post)
+
+        assert new_user.liked.count() == user_liked+1
+        assert new_post.likes.count() == post_likes+1
+
+    def test_user_unlike(self, new_user, new_post):
+        new_user.like(new_post)
+
+        user_liked = new_user.liked.count()
+        post_likes = new_post.likes.count()
+
+        new_user.unlike(new_post)
+
+        assert new_user.liked.count() == user_liked-1
+        assert new_post.likes.count() == post_likes-1
