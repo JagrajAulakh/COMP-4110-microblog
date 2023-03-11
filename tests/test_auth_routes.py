@@ -102,7 +102,6 @@ class TestAuthRoutes:
 
     def test_register_get(self, client):
     	resp = client.get("/auth/register")
-    	print(resp.status_code)
     	assert resp.status_code == 200
 
 
@@ -116,7 +115,6 @@ class TestAuthRoutes:
                 "password2": "batata",
             },
         )
-        print(resp.status_code)
 
     def test_register_redirect(self, mocker, client, create_user):
         resp = client.post(
@@ -134,11 +132,8 @@ class TestAuthRoutes:
                 "password": "batata",
                 "password2": "batata",
             },)
-        print(resp.data)
         assert resp.status_code == 302
        	assert "/index" in resp.headers.get("Location")
-
-
 
     def test_reset_password(self, client, create_user):
         resp = client.post(
