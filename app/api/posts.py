@@ -109,16 +109,17 @@ def posts(id):
             db.session.commit()
             return jsonify({"response":"Unfavorited post successfully."})
 @bp.route('post/like/<int:id>', methods=["POST"])
+@token_auth.login_required
 def like_post(id):
-
-    data = request.get_json() or {}
-    if 'post_id' not in data:
-        return bad_request("must include id field")
 
     user = User.query.get(id)
     if user is None:
         return bad_request("no user with id %s found" % id)
-    if current_user.id != id:
+
+    data = request.get_json() or {}
+    if 'post_id' not in data:
+        return bad_request("must include id field")
+    if token_auth.current_user().id != user.id:
         return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
                            % (user.id, token_auth.current_user().id))
 
@@ -133,8 +134,8 @@ def like_post(id):
     return response
 
 @bp.route('post/unlike/<int:id>', methods=["POST"])
+@token_auth.login_required
 def unlike_post(id):
-
     data = request.get_json() or {}
     if 'post_id' not in data:
         return bad_request("must include id field")
@@ -142,7 +143,7 @@ def unlike_post(id):
     user = User.query.get(id)
     if user is None:
         return bad_request("no user with id %s found" % id)
-    if current_user.id != id:
+    if token_auth.current_user().id != user.id:
         return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
                            % (user.id, token_auth.current_user().id))
 
@@ -158,6 +159,7 @@ def unlike_post(id):
 
 
 @bp.route('post/toggle-like/<int:id>', methods=["POST"])
+@token_auth.login_required
 def post_toggle_like(id):
 
     data = request.get_json() or {}
@@ -167,7 +169,7 @@ def post_toggle_like(id):
     user = User.query.get(id)
     if user is None:
         return bad_request("no user with id %s found" % id)
-    if current_user.id != id:
+    if token_auth.current_user().id != user.id:
         return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
                            % (user.id, token_auth.current_user().id))
 
