@@ -2,6 +2,7 @@ import pytest
 
 from app import create_app, db
 from app.models import User, Post
+from app.api.auth import token_auth
 from config import Config
 
 
@@ -26,6 +27,7 @@ class TestPostAPI:
         db.session.remove()
         db.drop_all()
         self.app_context.pop()
+        self.app_text_request_context.pop()
 
     @pytest.fixture()
     def user1(self):
@@ -180,3 +182,135 @@ class TestPostAPI:
         )
 
         assert response.status_code == 404
+
+    def test_like_post_no_post_id_in_body(self, user1, headers):
+        response = self.client.post(
+                "/api/post/like/%d" % user1.id,
+                headers=headers
+                )
+        assert response.status_code == 400
+
+    def test_like_post_valid_user(self, user1, post1, headers):
+        old_likes = post1.likes.count()
+
+        response = self.client.post(
+                "/api/post/like/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 200
+        assert post1.likes.count() == old_likes + 1
+
+    # User should only be able to like a post once
+    def test_like_post_twice(self, user1, post1, headers):
+        old_likes = post1.likes.count()
+
+        response1 = self.client.post(
+                "/api/post/like/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+        assert response1.status_code == 200
+
+        response2 = self.client.post(
+                "/api/post/like/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+        assert response2.status_code == 200
+        assert post1.likes.count() == old_likes + 1
+
+    def test_like_post_invalid_user(self, post1, headers):
+        response = self.client.post(
+                "/api/post/like/12345",
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 400
+
+    def test_like_post_wrong_user_token(self, user2, post1, headers):
+        response = self.client.post(
+                "/api/post/like/%d" % user2.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 400
+
+    def test_unlike_post_no_post_id_in_body(self, user1, headers):
+        response = self.client.post(
+                "/api/post/unlike/%d" % user1.id,
+                headers=headers
+                )
+        assert response.status_code == 400
+
+    def test_unlike_post_valid_user(self, user1, post1, headers):
+        user1.like(post1)
+        old_likes = post1.likes.count()
+        response = self.client.post(
+                "/api/post/unlike/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 200
+        assert post1.likes.count() == old_likes - 1
+
+    def test_unlike_post_twice(self, user1, post1, headers):
+        user1.like(post1)
+        old_likes = post1.likes.count()
+
+        response1 = self.client.post(
+                "/api/post/unlike/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+        assert response1.status_code == 200
+
+        response2 = self.client.post(
+                "/api/post/unlike/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+        assert response2.status_code == 200
+        assert post1.likes.count() == old_likes - 1
+
+
+    def test_unlike_post_invalid_user(self, post1, headers):
+        response = self.client.post(
+                "/api/post/unlike/12345",
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 400
+
+    def test_unlike_post_wrong_user_token(self, user2, post1, headers):
+        response = self.client.post(
+                "/api/post/unlike/%d" % user2.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert response.status_code == 400
+
+    def test_post_like_toggle(self, user1, post1, headers):
+        old_likes = post1.likes.count()
+
+        response = self.client.post(
+                "api/post/toggle-like/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+        assert response.status_code == 200
+        assert post1.likes.count() == old_likes + 1
+
+        response = self.client.post(
+                "api/post/toggle-like/%d" % user1.id,
+                json = {'post_id': post1.id},
+                headers=headers
+                )
+
+        assert post1.likes.count() == old_likes
