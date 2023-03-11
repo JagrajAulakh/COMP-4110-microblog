@@ -1,7 +1,4 @@
-import jwt
 import pytest
-from pytest_mock import mocker
-from datetime import datetime, timedelta
 from app import create_app, db
 from app.models import User, Post
 from config import Config
@@ -13,7 +10,7 @@ class TestConfig(Config):
     ELASTICSEARCH_URL = None
 
 
-class TestPostModel:
+class TestPostAPI:
     @pytest.fixture(autouse=True)
     def setup_app(self):
         self.app = create_app(TestConfig)
