@@ -16,7 +16,7 @@ pipeline {
 				steps {
 					echo 'Running pytest unit tests'
 					sh 'docker container rm microblog-tests || true'
-					sh 'docker run -t --name microblog-tests -e TESTING=true project-microblog sh boot.sh'
+					sh 'docker run -t --name microblog-tests -e TESTING=true microblog sh boot.sh'
 				}
 			}
 			stage('deploy') {
