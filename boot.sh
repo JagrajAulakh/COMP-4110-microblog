@@ -1,4 +1,7 @@
 #!/bin/bash
+
+set -e
+
 # this script is used to boot a Docker container
 source venv/bin/activate
 while true; do
@@ -10,4 +13,10 @@ while true; do
     sleep 5
 done
 flask translate compile
-exec gunicorn -b :5000 --access-logfile - --error-logfile - microblog:app
+
+if [[ -n "${TESTING}" && "${TESTING}" == "true" ]]; then
+	pytest -svv
+else
+	exec gunicorn -b :5000 --access-logfile - --error-logfile - microblog:app
+fi
+
