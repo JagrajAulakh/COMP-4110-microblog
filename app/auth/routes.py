@@ -8,12 +8,13 @@ from app.auth.forms import LoginForm, RegistrationForm, \
     ResetPasswordRequestForm, ResetPasswordForm
 from app.models import User
 from app.auth.email import send_password_reset_email
+import pyotp
 
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for("login_2fa"))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -26,6 +27,36 @@ def login():
             next_page = url_for('main.index')
         return redirect(next_page)
     return render_template('auth/login.html', title=_('Sign In'), form=form)
+
+  
+# 2FA page route
+@bp.route("/login/2fa/")
+def login_2fa():
+    # generating random secret key for authentication
+    secret = pyotp.random_base32()
+    return render_template("auth/login_2fac.html", secret=secret)
+
+
+
+  # 2FA form route
+#@app.route("/login/2fa/", methods=["POST"])
+#def login_2fa_form():
+    # getting secret key used by user
+    #secret = request.form.get("secret")
+    # getting OTP provided by user
+    #otp = int(request.form.get("otp"))
+
+    # verifying submitted OTP with PyOTP
+    #if pyotp.TOTP(secret).verify(otp):
+        # inform users if OTP is valid
+        #flash("The TOTP 2FA token is valid", "success")
+        #return redirect(url_for("login_2fa"))
+    #else:
+        # inform users if OTP is invalid
+        #flash("You have supplied an invalid 2FA token!", "danger")
+        #return redirect(url_for("login_2fa"))  
+
+
 
 
 @bp.route('/logout')
