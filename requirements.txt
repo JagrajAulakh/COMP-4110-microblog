@@ -15,7 +15,7 @@ Flask-HTTPAuth==4.4.0
 Flask-Login==0.5.0
 Flask-Mail==0.9.1
 Flask-Migrate==3.0.1
-Flask-Moment==1.0.5
+Flask-Moment==1.0.1
 Flask-SQLAlchemy==2.5.1
 Flask-WTF==0.15.1
 httpie==2.4.0
