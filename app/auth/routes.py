@@ -37,24 +37,18 @@ def login_2fa():
     return render_template("auth/login_2fac.html", secret=secret)
 
 
+@bp.route("/login/2fa/", methods=["POST"])
+def login_2fa_form():
 
-  # 2FA form route
-#@app.route("/login/2fa/", methods=["POST"])
-#def login_2fa_form():
-    # getting secret key used by user
-    #secret = request.form.get("secret")
-    # getting OTP provided by user
-    #otp = int(request.form.get("otp"))
+    secret = request.form.get("secret")
+    otp = int(request.form.get("otp"))
 
-    # verifying submitted OTP with PyOTP
-    #if pyotp.TOTP(secret).verify(otp):
-        # inform users if OTP is valid
-        #flash("The TOTP 2FA token is valid", "success")
-        #return redirect(url_for("login_2fa"))
-    #else:
-        # inform users if OTP is invalid
-        #flash("You have supplied an invalid 2FA token!", "danger")
-        #return redirect(url_for("login_2fa"))  
+    if pyotp.TOTP(secret).verify(otp):
+        flash("The TOTP 2FA token is valid", "success")
+        return redirect(url_for("auth.login_2fa"))
+    else:
+        flash("You have supplied an invalid 2FA token!", "danger")
+        return redirect(url_for("auth.login_2fa"))  
 
 
 
