@@ -116,6 +116,20 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
                                     lazy='dynamic')
     tasks = db.relationship('Task', backref='user', lazy='dynamic')
 
+    favorites = db.relationship('Favorite', backref='user', lazy='dynamic')
+
+    def favorite(self, post):
+        if not self.has_favorited(post):
+            self.favorites.append(Favorite(user=self, post=post))
+
+    def unfavorite(self, post):
+        favorite = self.favorites.filter_by(post_id=post.id).first()
+        if favorite:
+            db.session.delete(favorite)
+
+    def has_favorited(self, post):
+        return self.favorites.filter_by(post_id=post.id).count() > 0
+
     def __repr__(self):
         return '<User {}>'.format(self.username)
 
@@ -249,7 +263,7 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     language = db.Column(db.String(5))
-
+    # favorited_by = db.relationship('Favorite', backref='post', lazy='dynamic')
     def to_dict(self):
         data = {
             'id': self.id,
@@ -309,3 +323,9 @@ class Task(db.Model):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
 
+class Favorite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
+    # post = db.relationship('Post', backref='favorited_by')
+    original_post = db.Column(db.String(140), db.ForeignKey('post.body'))

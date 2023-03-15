@@ -50,13 +50,29 @@
                     Delete post
                 </button>
                 {% endif %}
-                <button type="button" class="btn btn-secondary">
-                    Favourite Post
+                <button type="button" class="btn btn-secondary" onclick="addToFavorite({{ post.id }})">
+                    Favorite Post
                 </button>
             </td>
         </tr>
     </table>
     <script>
+        // This function runs when "Favorite Post" button is pressed
+        function addToFavorite(id) {
+            console.log(`adding post ${id} to {{ current_user.id }}'s favorites`)
+            fetch("/api/posts/{{ current_user.id }}", {
+                method: "FAVORITE",
+                body: JSON.stringify({id: id}),
+                headers: {
+                    "Authorization": "Bearer {{ current_user.get_token() }}",
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then((data) => {
+                    console.log(data);
+                    window.location.reload()
+                })
+        }
         function launchModal(id) {
             $(`#deleteModal${id}`).modal();
         }
