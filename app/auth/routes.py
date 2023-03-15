@@ -9,32 +9,40 @@ from app.auth.forms import LoginForm, RegistrationForm, \
 from app.models import User
 from app.auth.email import send_password_reset_email
 import pyotp
+import sys
 
+validated = False
+
+# 2FA page route
+@bp.route("/login/2fa/")
+def login_2fa():
+    # generating random secret key for authentication
+    secret = pyotp.random_base32()
+    return render_template("auth/login_2fac.html", secret=secret)   
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for("login_2fa"))
+        return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash(_('Invalid username or password'))
             return redirect(url_for('auth.login'))
-        login_user(user, remember=form.remember_me.data)
+        if validated:
+           print("validated ", validated)
+           print('This is standard output', file=sys.stdout)
+           login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
-            next_page = url_for('main.index')
-        return redirect(next_page)
+            print("second")
+            next_page = url_for('auth.login_2fa')
+        return redirect(url_for('auth.login_2fa'))
     return render_template('auth/login.html', title=_('Sign In'), form=form)
 
   
-# 2FA page route
-@bp.route("/login/2fa/")
-def login_2fa():
-    # generating random secret key for authentication
-    secret = pyotp.random_base32()
-    return render_template("auth/login_2fac.html", secret=secret)
+
 
 
 @bp.route("/login/2fa/", methods=["POST"])
@@ -44,8 +52,10 @@ def login_2fa_form():
     otp = int(request.form.get("otp"))
 
     if pyotp.TOTP(secret).verify(otp):
+        print(validated)
         flash("The TOTP 2FA token is valid", "success")
-        return redirect(url_for("auth.login_2fa"))
+        validated = True
+        return redirect(url_for("main.index"))
     else:
         flash("You have supplied an invalid 2FA token!", "danger")
         return redirect(url_for("auth.login_2fa"))  
