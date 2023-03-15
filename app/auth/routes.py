@@ -11,11 +11,10 @@ from app.auth.email import send_password_reset_email
 import pyotp
 import sys
 
-validated = False
 
 # 2FA page route
-@bp.route("/login/2fa/")
-def login_2fa():
+@bp.route("/login/2fa/<int:id>")
+def login_2fa(id):
     # generating random secret key for authentication
     secret = pyotp.random_base32()
     return render_template("auth/login_2fac.html", secret=secret)   
@@ -30,31 +29,24 @@ def login():
         if user is None or not user.check_password(form.password.data):
             flash(_('Invalid username or password'))
             return redirect(url_for('auth.login'))
-        if validated:
-           print("validated ", validated)
-           print('This is standard output', file=sys.stdout)
-           login_user(user, remember=form.remember_me.data)
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
-            print("second")
-            next_page = url_for('auth.login_2fa')
-        return redirect(url_for('auth.login_2fa'))
+            next_page = url_for('auth.login_2fa', id = user.id)
+        return redirect(url_for('auth.login_2fa', id = user.id))
     return render_template('auth/login.html', title=_('Sign In'), form=form)
 
   
 
 
 
-@bp.route("/login/2fa/", methods=["POST"])
-def login_2fa_form():
-
+@bp.route("/login/2fa/<int:id>", methods=["POST"])
+def login_2fa_form(id):
     secret = request.form.get("secret")
     otp = int(request.form.get("otp"))
-
     if pyotp.TOTP(secret).verify(otp):
-        print(validated)
+        user = User.query.get(id)
+        login_user(user)
         flash("The TOTP 2FA token is valid", "success")
-        validated = True
         return redirect(url_for("main.index"))
     else:
         flash("You have supplied an invalid 2FA token!", "danger")
