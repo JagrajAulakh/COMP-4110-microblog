@@ -1,4 +1,5 @@
 from flask import jsonify, request, url_for
+from flask_login import current_user
 from app import db
 from app.api.errors import bad_request, error_response
 from app.models import Post, User, Favorite
@@ -35,7 +36,6 @@ def posts(id):
         if "body" not in data:
             return bad_request("must include body field")
         if token_auth.current_user().id != user.id:
-            print("token_user:", token_auth.current_user(), "\npassed user:", user)
             return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
                                % (user.id, token_auth.current_user().id))
 
@@ -108,3 +108,81 @@ def posts(id):
             db.session.delete(fave_post)
             db.session.commit()
             return jsonify({"response":"Unfavorited post successfully."})
+@bp.route('post/like/<int:id>', methods=["POST"])
+def like_post(id):
+
+    data = request.get_json() or {}
+    if 'post_id' not in data:
+        return bad_request("must include id field")
+
+    user = User.query.get(id)
+    if user is None:
+        return bad_request("no user with id %s found" % id)
+    if current_user.id != id:
+        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+                           % (user.id, token_auth.current_user().id))
+
+
+    post = Post.query.get(int(data["post_id"]))
+    user.like(post)
+    db.session.commit()
+
+    response = jsonify(post.to_dict())
+    response.status_code = 200
+
+    return response
+
+@bp.route('post/unlike/<int:id>', methods=["POST"])
+def unlike_post(id):
+
+    data = request.get_json() or {}
+    if 'post_id' not in data:
+        return bad_request("must include id field")
+
+    user = User.query.get(id)
+    if user is None:
+        return bad_request("no user with id %s found" % id)
+    if current_user.id != id:
+        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+                           % (user.id, token_auth.current_user().id))
+
+
+    post = Post.query.get(int(data["post_id"]))
+    user.unlike(post)
+    db.session.commit()
+
+    response = jsonify(post.to_dict())
+    response.status_code = 200
+
+    return response
+
+
+@bp.route('post/toggle-like/<int:id>', methods=["POST"])
+def post_toggle_like(id):
+
+    data = request.get_json() or {}
+    if 'post_id' not in data:
+        return bad_request("must include id field")
+
+    user = User.query.get(id)
+    if user is None:
+        return bad_request("no user with id %s found" % id)
+    if current_user.id != id:
+        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+                           % (user.id, token_auth.current_user().id))
+
+    post = Post.query.get(int(data["post_id"]))
+
+    if user in post.likes:
+        l = False
+        user.unlike(post)
+    else:
+        l = True
+        user.like(post)
+
+    db.session.commit()
+
+    response = jsonify({"result": "liked" if l else "unliked", "post": post.to_dict()})
+    response.status_code = 200
+
+    return response

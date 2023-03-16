@@ -44,7 +44,16 @@
                                 '{{ g.locale }}');">{{ _('Translate') }}</a>
                 </span>
                 {% endif %}
-                <br>
+            </td>
+            <td style="min-width: 100px; display: flex; flex-direction: column; align-items: end;">
+                <button type="button" class="btn btn-secondary" onclick="togglelike({{ post.id }})">
+                    <img
+                    id="{{ post.id }}-up-arrow"
+                    src="../static/up-arrow-{% if current_user.liked.filter_by(id=post.id).first() %}red{% else %}dark{% endif %}.svg"
+                    alt="up-arrow"
+                    width="20px">
+                    <span id="{{ post.id }}-count-text">{{ post.likes.count() }}</span>
+                </button>
                 {% if current_user and post.author.id == current_user.id %}
                 <button type="button" class="btn btn-danger" onclick="launchModal({{ post.id }})">
                     Delete post
@@ -102,8 +111,6 @@
             $(`#deleteModal${id}`).modal('hide');
         }
         function deletePost(id) {
-            console.log(`delete post ${id}`);
-
             fetch("/api/posts/{{ current_user.id }}", {
                 method: "DELETE",
                 body: JSON.stringify({id: id}),
@@ -117,5 +124,19 @@
                     window.location.reload()
                 })
             closeModal(id);
+        }
+        function togglelike(id) {
+            fetch("/api/post/toggle-like/{{ current_user.id }}", {
+                method: "POST",
+                body: JSON.stringify({post_id: id}),
+                headers: {
+                    "Authorization": "Bearer {{ current_user.get_token() }}",
+                    "Content-Type": "application/json"
+                }
+            })
+                .then(response => response.json())
+                .then(data => {
+                    window.location.reload() //reload the page to update like count
+                });
         }
     </script>

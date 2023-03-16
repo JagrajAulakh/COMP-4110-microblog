@@ -7,10 +7,9 @@ from time import time
 from flask import current_app, url_for
 from flask_login import UserMixin
 from langdetect import detect
+from sqlalchemy.orm import RelationshipProperty
 from werkzeug.security import generate_password_hash, check_password_hash
 import jwt
-import redis
-import rq
 from app import db, login
 from app.search import add_to_index, remove_from_index, query_index
 
@@ -89,13 +88,18 @@ followers = db.Table(
     db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
 )
 
+likes = db.Table(
+    'likes',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
+)
 
 class User(UserMixin, PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
     email = db.Column(db.String(120), index=True, unique=True)
     password_hash = db.Column(db.String(128))
-    posts = db.relationship('Post', backref='author', lazy='dynamic')
+    posts: RelationshipProperty = db.relationship('Post', backref='author', lazy='dynamic')
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     token = db.Column(db.String(32), index=True, unique=True)
@@ -105,6 +109,13 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         primaryjoin=(followers.c.follower_id == id),
         secondaryjoin=(followers.c.followed_id == id),
         backref=db.backref('followers', lazy='dynamic'), lazy='dynamic')
+
+    liked = db.relationship(
+        'Post', secondary=likes,
+        # primaryjoin=(likes.c.user_id == id),
+        # secondaryjoin=(likes.c.post_id == posts.),
+        backref = db.backref('likes', lazy='dynamic'), lazy='dynamic')
+
     messages_sent = db.relationship('Message',
                                     foreign_keys='Message.sender_id',
                                     backref='author', lazy='dynamic')
@@ -166,6 +177,17 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
                 followers.c.follower_id == self.id)
         own = Post.query.filter_by(user_id=self.id)
         return followed.union(own).order_by(Post.timestamp.desc())
+
+    def like(self, post):
+        if not self.is_liking(post):
+            self.liked.append(post)
+
+    def unlike(self, post):
+        if self.is_liking(post):
+            self.liked.remove(post)
+
+    def is_liking(self, post):
+        return self.liked.filter(likes.c.post_id == post.id).count() > 0
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(
@@ -259,7 +281,6 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
 def load_user(id):
     return User.query.get(int(id))
 
-
 class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     __searchable__ = ['body']
     id = db.Column(db.Integer, primary_key=True)
@@ -267,6 +288,11 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     language = db.Column(db.String(5))
+    # likes = db.relationship('User', secondary="likes",
+    #                         primaryjoin=(likes.c.user_id == user_id),
+    #                         secondaryjoin=(likes.c.post_id == id),
+    #                         backref=db.backref('liked', lazy='dynamic'),lazy='dynamic')
+
     def to_dict(self):
         data = {
             'id': self.id,
@@ -274,6 +300,7 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
             'timestamp': self.timestamp,
             'user_id': self.user_id,
             'language': self.language,
+            'likes': self.likes.count()
         }
         return data
 

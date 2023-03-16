@@ -2,11 +2,6 @@ pipeline {
 	agent any
 
 		stages {
-			stage('Clone repo') {
-				steps {
-					checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[credentialsId: 'b082c69a-5eb6-4f94-ab2d-c9d9c5c93ef2', url: 'git@github.com:JagrajAulakh/COMP-4110-microblog.git']])
-				}
-			}
 			stage('build') {
 				steps {
 					sh 'docker-compose build'
@@ -14,7 +9,9 @@ pipeline {
 			}
 			stage('test') {
 				steps {
-					echo 'Testing...'
+					echo 'Running pytest unit tests'
+					sh 'docker container rm microblog-tests || true'
+					sh 'docker run -t --name microblog-tests -e TESTING=true microblog sh boot.sh'
 				}
 			}
 			stage('deploy') {
