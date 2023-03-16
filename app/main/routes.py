@@ -210,14 +210,15 @@ def messages():
 @bp.route('/favorites')
 @login_required
 def favorites():
-    favorites_list = Favorite.query.filter_by(user_id=current_user.id).all()
-    send_list = []
-    deleted = []
-    for item in favorites_list:
+    favorites_list = Favorite.query.filter_by(user_id=current_user.id).all() # list of all favorites
+    send_list = [] # this list contains non-deleted posts
+    deleted = [] # this list contains deleted posts
+    for item in favorites_list: # iterate through all favorites
+        # should have used .first() but while this was written I forgot it existed
         post_object = Post.query.filter_by(id=item.post_id).all()
-        if len(post_object) >= 1:
-            send_list.append(post_object[0])
-        else:
+        if len(post_object) >= 1: # if favorite is found
+            send_list.append(post_object[0]) 
+        else: # if not found
             deleted.append(item)
     return render_template('favorites.html', posts=send_list, deleted_posts=deleted)
 

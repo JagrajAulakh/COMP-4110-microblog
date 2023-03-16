@@ -79,6 +79,7 @@
                     window.location.reload()
                 })
         }
+        // This function runs when "Unfavorite Post" button is pressed
         function addToFavorites(id) {
             console.log(`adding post ${id} to {{ current_user.id }}'s favorites`)
             fetch("/api/posts/{{ current_user.id }}", {

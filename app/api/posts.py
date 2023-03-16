@@ -16,7 +16,7 @@ def get_posts():
     return jsonify(data)
 
 
-@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE", "FAVORITE", "UNFAVORITE", "UNFAVORITE_DELETED"])
+@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE", "FAVORITE", "UNFAVORITE", "UNFAVORITE_DELETED_POST"])
 @token_auth.login_required
 def posts(id):
     user = User.query.get(id)
@@ -51,6 +51,7 @@ def posts(id):
 
         return response
 
+    # Deletes the post
     elif request.method == "DELETE":
         if token_auth.current_user().id != user.id:
             return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
@@ -69,6 +70,7 @@ def posts(id):
         response.status_code = 200
         return response
     
+    # Adds post to the user's favorites list
     elif request.method == "FAVORITE":
         if "id" not in data:
             return bad_request("Must include id field")
@@ -79,8 +81,9 @@ def posts(id):
         else:
             user.favorite(post)
             db.session.commit()
-            return jsonify({"response":"added post!!!"})
-        
+            return jsonify({"response":"Favorited post successfully."})
+    
+    # Removes post from the user's favorites list (does not work for deleted posts)
     elif request.method == "UNFAVORITE":
         if "id" not in data:
             return bad_request("Must include id field")
@@ -91,8 +94,10 @@ def posts(id):
         else:
             user.unfavorite(post)
             db.session.commit()
-            return jsonify({"response":"removed post!!!"})
-    elif request.method == "UNFAVORITE_DELETED":
+            return jsonify({"response":"Unfavorited post successfully."})
+    
+    # Removes DELETED post from the user's favorites list        
+    elif request.method == "UNFAVORITE_DELETED_POST":
         if "id" not in data:
             return bad_request("Must include id field")
         fave_post = user.favorites.filter_by(post_id=int(data["id"])).first()
@@ -102,4 +107,4 @@ def posts(id):
         else:
             db.session.delete(fave_post)
             db.session.commit()
-            return jsonify({"response":"removed post!!!"})
+            return jsonify({"response":"Unfavorited post successfully."})

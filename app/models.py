@@ -116,17 +116,21 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
                                     lazy='dynamic')
     tasks = db.relationship('Task', backref='user', lazy='dynamic')
 
+    # create favorites relationship
     favorites = db.relationship('Favorite', backref='user', lazy='dynamic')
 
+    # add provided post to favorites list
     def favorite(self, post):
         if not self.has_favorited(post):
             self.favorites.append(Favorite(user_id=id, post_id=post.id, original_post=post.body))
 
+    # remove provided post from favorites list
     def unfavorite(self, post):
         favorite = self.favorites.filter_by(post_id=post.id).first()
         if favorite:
             db.session.delete(favorite)
 
+    # returns true if provided post is in favorites, false otherwise
     def has_favorited(self, post):
         return self.favorites.filter_by(post_id=post.id).count() > 0
 
@@ -322,9 +326,9 @@ class Task(db.Model):
         job = self.get_rq_job()
         return job.meta.get('progress', 0) if job is not None else 100
 
+# class for favorites table
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
-    # post = db.relationship('Post', backref='favorited_by')
     original_post = db.Column(db.String(140), db.ForeignKey('post.body'))

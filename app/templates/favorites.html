@@ -24,7 +24,7 @@
     function removeFromFavorites(id) {
         console.log(`removing post ${id} from {{ current_user.id }}'s favorites (inner)`)
         fetch("/api/posts/{{ current_user.id }}", {
-            method: "UNFAVORITE_DELETED",
+            method: "UNFAVORITE_DELETED_POST",
             body: JSON.stringify({id: id}),
             headers: {
                 "Authorization": "Bearer {{ current_user.get_token() }}",
