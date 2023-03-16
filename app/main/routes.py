@@ -7,7 +7,7 @@ from langdetect import detect, LangDetectException
 from app import db
 from app.main.forms import EditProfileForm, EmptyForm, PostForm, SearchForm, \
     MessageForm
-from app.models import User, Post, Message, Notification
+from app.models import User, Post, Message, Notification, Favorite
 from app.translate import translate
 from app.main import bp
 
@@ -207,6 +207,20 @@ def messages():
     return render_template('messages.html', messages=messages.items,
                            next_url=next_url, prev_url=prev_url)
 
+@bp.route('/favorites')
+@login_required
+def favorites():
+    favorites_list = Favorite.query.filter_by(user_id=current_user.id).all() # list of all favorites
+    send_list = [] # this list contains non-deleted posts
+    deleted = [] # this list contains deleted posts
+    for item in favorites_list: # iterate through all favorites
+        # should have used .first() but while this was written I forgot it existed
+        post_object = Post.query.filter_by(id=item.post_id).all()
+        if len(post_object) >= 1: # if favorite is found
+            send_list.append(post_object[0]) 
+        else: # if not found
+            deleted.append(item)
+    return render_template('favorites.html', posts=send_list, deleted_posts=deleted)
 
 @bp.route('/export_posts')
 @login_required

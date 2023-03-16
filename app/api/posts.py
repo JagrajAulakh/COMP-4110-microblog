@@ -2,7 +2,7 @@ from flask import jsonify, request, url_for
 from flask_login import current_user
 from app import db
 from app.api.errors import bad_request, error_response
-from app.models import Post, User
+from app.models import Post, User, Favorite
 from app.api import bp
 from app.api.auth import token_auth
 
@@ -17,7 +17,7 @@ def get_posts():
     return jsonify(data)
 
 
-@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE"])
+@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE", "FAVORITE", "UNFAVORITE", "UNFAVORITE_DELETED_POST"])
 @token_auth.login_required
 def posts(id):
     user = User.query.get(id)
@@ -51,6 +51,7 @@ def posts(id):
 
         return response
 
+    # Deletes the post
     elif request.method == "DELETE":
         if token_auth.current_user().id != user.id:
             return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
@@ -68,7 +69,45 @@ def posts(id):
         response = jsonify(post.to_dict())
         response.status_code = 200
         return response
-
+    
+    # Adds post to the user's favorites list
+    elif request.method == "FAVORITE":
+        if "id" not in data:
+            return bad_request("Must include id field")
+        post = Post.query.get(int(data["id"]))
+        if post is None:
+            return error_response(404, "post with id %s not found (requested from user %d)" %
+                               (data["id"], user.id))
+        else:
+            user.favorite(post)
+            db.session.commit()
+            return jsonify({"response":"Favorited post successfully."})
+    
+    # Removes post from the user's favorites list (does not work for deleted posts)
+    elif request.method == "UNFAVORITE":
+        if "id" not in data:
+            return bad_request("Must include id field")
+        post = Post.query.get(int(data["id"]))
+        if post is None:
+            return error_response(404, "post with id %s not found (requested from user %d)" %
+                               (data["id"], user.id))
+        else:
+            user.unfavorite(post)
+            db.session.commit()
+            return jsonify({"response":"Unfavorited post successfully."})
+    
+    # Removes DELETED post from the user's favorites list        
+    elif request.method == "UNFAVORITE_DELETED_POST":
+        if "id" not in data:
+            return bad_request("Must include id field")
+        fave_post = user.favorites.filter_by(post_id=int(data["id"])).first()
+        if fave_post is None:
+            return error_response(404, "post with id %s not found (requested from user %d)" %
+                               (data["id"], user.id))
+        else:
+            db.session.delete(fave_post)
+            db.session.commit()
+            return jsonify({"response":"Unfavorited post successfully."})
 @bp.route('post/like/<int:id>', methods=["POST"])
 def like_post(id):
 
