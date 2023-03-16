@@ -50,15 +50,36 @@
                     Delete post
                 </button>
                 {% endif %}
-                <button type="button" class="btn btn-secondary" onclick="addToFavorite({{ post.id }})">
+                {% if not current_user.has_favorited(post) %}
+                <button type="button" class="btn btn-secondary" onclick="addToFavorites({{ post.id }})">
                     Favorite Post
                 </button>
+                {% else %}
+                <button type="button" class="btn btn-secondary" onclick="removeFromFavorites({{ post.id }})">
+                    Unfavorite Post
+                </button>
+                {% endif %}
             </td>
         </tr>
     </table>
     <script>
         // This function runs when "Favorite Post" button is pressed
-        function addToFavorite(id) {
+        function removeFromFavorites(id) {
+            console.log(`removing post ${id} from {{ current_user.id }}'s favorites`)
+            fetch("/api/posts/{{ current_user.id }}", {
+                method: "UNFAVORITE",
+                body: JSON.stringify({id: id}),
+                headers: {
+                    "Authorization": "Bearer {{ current_user.get_token() }}",
+                    "Content-Type": "application/json"
+                }
+            }).then(response => response.json())
+                .then((data) => {
+                    console.log(data);
+                    window.location.reload()
+                })
+        }
+        function addToFavorites(id) {
             console.log(`adding post ${id} to {{ current_user.id }}'s favorites`)
             fetch("/api/posts/{{ current_user.id }}", {
                 method: "FAVORITE",

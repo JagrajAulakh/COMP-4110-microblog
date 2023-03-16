@@ -21,9 +21,20 @@
 </table>
 {% endfor %}
 <script>
-    // TODO
     function removeFromFavorites(id) {
-        console.log(`removing post ${id} from {{ current_user.id }}'s favorites`)
+        console.log(`removing post ${id} from {{ current_user.id }}'s favorites (inner)`)
+        fetch("/api/posts/{{ current_user.id }}", {
+            method: "UNFAVORITE_DELETED",
+            body: JSON.stringify({id: id}),
+            headers: {
+                "Authorization": "Bearer {{ current_user.get_token() }}",
+                "Content-Type": "application/json"
+            }
+        }).then(response => response.json())
+            .then((data) => {
+                console.log(data);
+                window.location.reload()
+            })
     }
 </script>
 {% endblock %}

@@ -16,7 +16,7 @@ def get_posts():
     return jsonify(data)
 
 
-@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE", "FAVORITE"])
+@bp.route("/posts/<int:id>", methods=["GET", "POST", "DELETE", "FAVORITE", "UNFAVORITE", "UNFAVORITE_DELETED"])
 @token_auth.login_required
 def posts(id):
     user = User.query.get(id)
@@ -77,6 +77,29 @@ def posts(id):
             return error_response(404, "post with id %s not found (requested from user %d)" %
                                (data["id"], user.id))
         else:
-            db.session.add(Favorite(user_id=user.id, post_id=post.id, original_post=post.body))
+            user.favorite(post)
             db.session.commit()
             return jsonify({"response":"added post!!!"})
+        
+    elif request.method == "UNFAVORITE":
+        if "id" not in data:
+            return bad_request("Must include id field")
+        post = Post.query.get(int(data["id"]))
+        if post is None:
+            return error_response(404, "post with id %s not found (requested from user %d)" %
+                               (data["id"], user.id))
+        else:
+            user.unfavorite(post)
+            db.session.commit()
+            return jsonify({"response":"removed post!!!"})
+    elif request.method == "UNFAVORITE_DELETED":
+        if "id" not in data:
+            return bad_request("Must include id field")
+        fave_post = user.favorites.filter_by(post_id=int(data["id"])).first()
+        if fave_post is None:
+            return error_response(404, "post with id %s not found (requested from user %d)" %
+                               (data["id"], user.id))
+        else:
+            db.session.delete(fave_post)
+            db.session.commit()
+            return jsonify({"response":"removed post!!!"})

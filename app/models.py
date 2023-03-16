@@ -120,7 +120,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
 
     def favorite(self, post):
         if not self.has_favorited(post):
-            self.favorites.append(Favorite(user=self, post=post))
+            self.favorites.append(Favorite(user_id=id, post_id=post.id, original_post=post.body))
 
     def unfavorite(self, post):
         favorite = self.favorites.filter_by(post_id=post.id).first()
