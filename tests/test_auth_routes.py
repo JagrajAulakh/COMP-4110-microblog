@@ -42,18 +42,16 @@ class TestAuthRoutes:
 
         totp = pyotp.TOTP(secret)
 
-        token = totp.now()
+        code = totp.now()
 
-        assert totp.verify(token)
+        assert totp.verify(code)
 
         assert not totp.verify('123456')
 
-        old_token = token
-
-        time.sleep(31)
-
-        new_token = totp.now()
-        assert old_token != new_token
+        next_time = int(time.time()) + 30
+        next_code = totp.at(next_time)
+        
+        assert code != next_code
 
     def test_login_get(self, client, create_user):
         resp = client.get("/auth/login")
