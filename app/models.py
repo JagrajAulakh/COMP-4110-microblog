@@ -103,7 +103,8 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     token = db.Column(db.String(32), index=True, unique=True)
-    token_expiration = db.Column(db.DateTime)
+    token_expiration = db.Column(db.DateTime, unique = True)
+    FA_token = db.Column(db.String(16))
     followed = db.relationship(
         'User', secondary=followers,
         primaryjoin=(followers.c.follower_id == id),
@@ -147,6 +148,9 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
 
     def __repr__(self):
         return '<User {}>'.format(self.username)
+    
+    def set_two_FA(self, FA_token):
+        self.FA_token = FA_token
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
