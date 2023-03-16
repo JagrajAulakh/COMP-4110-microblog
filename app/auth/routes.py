@@ -11,18 +11,13 @@ from app.auth.email import send_password_reset_email
 import pyotp
 import sys
 
-
 # 2FA page route
 @bp.route("/login/2fa/<int:id>")
 def login_2fa(id):
-    # generating random secret key for authentication
-    secret = pyotp.random_base32()
-    return render_template("auth/login_2fac.html", secret=secret)
+    return render_template("auth/login_2fac.html", id=id)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
-    if current_user.is_authenticated:
-        return redirect(url_for("main.index"))
     form = LoginForm()
     if form.validate_on_submit():
         user = User.query.filter_by(username=form.username.data).first()
@@ -38,23 +33,21 @@ def login():
 
 @bp.route("/login/2fa/<int:id>", methods=["POST"])
 def login_2fa_form(id):
-    secret = request.form.get("secret")
-    otp = int(request.form.get("otp"))
+    user = User.query.get(id)
+    secret = user.FA_token
+    otp = request.form.get("otp")
     if pyotp.TOTP(secret).verify(otp):
-        user = User.query.get(id)
         login_user(user)
         flash("The TOTP 2FA token is valid", "success")
         return redirect(url_for("main.index"))
     else:
         flash("You have supplied an invalid 2FA token!", "danger")
-        return redirect(url_for("auth.login_2fa"))  
-
+        return redirect(url_for("auth.login_2fa",  id=id)) 
 
 @bp.route('/logout')
 def logout():
     logout_user()
     return redirect(url_for('main.index'))
-
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
@@ -62,12 +55,14 @@ def register():
         return redirect(url_for('main.index'))
     form = RegistrationForm()
     if form.validate_on_submit():
+        secret = pyotp.random_base32()
         user = User(username=form.username.data, email=form.email.data)
         user.set_password(form.password.data)
+        user.set_two_FA(secret)
         db.session.add(user)
         db.session.commit()
-        flash(_('Congratulations, you are now a registered user!'))
-        return redirect(url_for('auth.login'))
+        flash(_(f'Congratulations, you are now a registered user!'))
+        return render_template('auth/secret_key.html', secret=secret)
     return render_template('auth/register.html', title=_('Register'),
                            form=form)
 

@@ -112,8 +112,6 @@ class TestAuthRoutes:
         assert "/auth/login" in resp.headers.get("Location")
 
 
-
-
     def test_logout(self, client, create_user):
         resp = client.get("/auth/logout")
         assert resp.status_code == 302
