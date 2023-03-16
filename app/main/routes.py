@@ -218,8 +218,7 @@ def favorites():
         if len(post_object) >= 1:
             send_list.append(post_object[0])
         else:
-            # send_list.append(Post(id=item.post_id, body=item.original_post, user_id=1, language="en"))
-            deleted.append(item.original_post)
+            deleted.append(item)
     return render_template('favorites.html', posts=send_list, deleted_posts=deleted)
 
 @bp.route('/export_posts')

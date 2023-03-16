@@ -3,6 +3,27 @@
 {% include '_post.html' %}
 {% endfor %}
 {% for post in deleted_posts %}
-<p>{{ post }}</p>
+<table class="table table-hover">
+    <tr>
+        <td width="70px">
+                <img src="https://external-content.duckduckgo.com/iu/?u=http%3A%2F%2Fwww.mshcorp.com%2Fmshcorp%2Fwp-content%2Fuploads%2F2012%2F02%2Fsettings-70px.png&f=1&nofb=1&ipt=f2ee6a8bd55d78e5a54cc9ba1fe50828f2cf1595d385ee3cde9f2d5ab3a177f2&ipo=images" />
+        </td>
+        <td>
+            [deleted]
+            <br>
+            <span>{{ post.original_post }}</span>
+            <br><br>
+            <button type="button" class="btn btn-secondary" onclick="removeFromFavorites({{ post.post_id }})">
+                Unfavorite Post
+            </button>
+        </td>
+    </tr>
+</table>
 {% endfor %}
+<script>
+    // TODO
+    function removeFromFavorites(id) {
+        console.log(`removing post ${id} from {{ current_user.id }}'s favorites`)
+    }
+</script>
 {% endblock %}
