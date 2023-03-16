@@ -5,6 +5,7 @@ from app.models import User
 from flask_login import login_user, current_user
 from pytest_mock import mocker
 import flask_login
+import pyotp
 
 class TestConfig(Config):
     TESTING = True
@@ -28,12 +29,19 @@ class TestAuthRoutes:
         self.app_context.pop()
 
     @pytest.fixture()
-    def create_user(self):
+    def create_user(self, secret):
         u1 = User(username="john", email="john@example.com")
+        u1.set_two_FA(secret)
         u1.set_password("batata")
         db.session.add(u1)
         db.session.commit()
         return u1
+
+
+
+    @pytest.fixture()
+    def secret(self):
+        return "gabagoo"
 
     def test_two_FA_hopt(self):
         import pyotp
@@ -78,16 +86,30 @@ class TestAuthRoutes:
                 "password": "batata",
             },
         )
+        yotp =  pyotp.TOTP(create_user.FA_token)
+        resp = client.post(
+            f"/auth/login/2fa/{create_user.id}",
+             data={
+                "otp": yotp.now()
+             },
+        )
         assert resp.status_code == 302
         assert "index" in resp.headers.get("Location")
 
     def test_login_twice(self, client, create_user):
         resp = client.post(
-            "/auth/login",
+            "/auth/login",      
             data={
                 "username": create_user.username,
                 "password": "batata",
             },
+        )
+        yotp =  pyotp.TOTP(create_user.FA_token)
+        resp = client.post(
+            f"/auth/login/2fa/{create_user.id}",
+             data={
+                "otp": yotp.now()
+             },
         )
         resp = client.post(
             "/auth/login",
@@ -96,6 +118,14 @@ class TestAuthRoutes:
                 "password": "lala",
             },
         )
+        yotp =  pyotp.TOTP(create_user.FA_token)
+        resp = client.post(
+            f"/auth/login/2fa/{create_user.id}",
+             data={
+                "otp": yotp.now()
+             },
+        )
+        assert resp.status_code == 302
         assert "index" in resp.headers.get("Location")
 
     def test_login_invalid_username(self, client):
@@ -148,8 +178,7 @@ class TestAuthRoutes:
                 "password": "batata",
                 "password2": "batata",
             },)
-        assert resp.status_code == 302
-       	assert "/index" in resp.headers.get("Location")
+        assert resp.status_code == 200
 
     def test_reset_password(self, client, create_user):
         resp = client.post(
@@ -158,3 +187,51 @@ class TestAuthRoutes:
                 "email": create_user.email
             },)
         assert resp.status_code == 302
+
+
+    def test_invalid_2fa_token(self, client, create_user):
+        resp = client.post(
+            "/auth/login",
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
+        yotp =  pyotp.TOTP(create_user.FA_token)
+        resp = client.post(
+            f"/auth/login/2fa/{create_user.id}",
+             data={
+                "otp": "asfij1421341"
+             },
+        )
+        assert resp.status_code == 302
+        assert "2fa" in resp.headers.get("Location")
+
+
+    def test_2fa_redirect(self, client, create_user):
+        resp = client.post(
+            "/auth/login",
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },)
+        assert resp.status_code == 302
+        assert "/2fa" in resp.headers.get("Location")
+
+    def test_reset_password_token(self, client, create_user):
+        token = create_user.get_reset_password_token()
+        resp = client.post(
+            f"/auth/reset_password/{token}", data={"password": "monkey", "password2": "monkey"})
+        assert resp.status_code == 302
+        assert create_user.check_password("monkey")
+        assert "/login" in resp.headers.get("Location")
+
+
+
+    def test_reset_password_token_wrong(self, client, create_user):
+        token = "gabagoo"
+        resp = client.post(
+            f"/auth/reset_password/{token}", data={"password": "monkey", "password2": "monkey"})
+        assert resp.status_code == 302
+        assert "/index" in resp.headers.get("Location")
+
