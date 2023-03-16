@@ -35,6 +35,26 @@ class TestAuthRoutes:
         db.session.commit()
         return u1
 
+    def test_two_FA_hopt(self):
+        import pyotp
+        import time
+        secret = pyotp.random_base32()
+
+        totp = pyotp.TOTP(secret)
+
+        token = totp.now()
+
+        assert totp.verify(token)
+
+        assert not totp.verify('123456')
+
+        old_token = token
+
+        time.sleep(31)
+
+        new_token = totp.now()
+        assert old_token != new_token
+
     def test_login_get(self, client, create_user):
         resp = client.get("/auth/login")
         assert resp.status_code == 200
