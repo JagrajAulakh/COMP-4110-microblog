@@ -212,9 +212,15 @@ def messages():
 def favorites():
     favorites_list = Favorite.query.filter_by(user_id=current_user.id).all()
     send_list = []
+    deleted = []
     for item in favorites_list:
-        send_list.append(item.original_post)
-    return render_template('favorites.html', posts=send_list)
+        post_object = Post.query.filter_by(id=item.post_id).all()
+        if len(post_object) >= 1:
+            send_list.append(post_object[0])
+        else:
+            # send_list.append(Post(id=item.post_id, body=item.original_post, user_id=1, language="en"))
+            deleted.append(item.original_post)
+    return render_template('favorites.html', posts=send_list, deleted_posts=deleted)
 
 @bp.route('/export_posts')
 @login_required

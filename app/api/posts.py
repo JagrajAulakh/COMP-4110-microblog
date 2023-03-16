@@ -77,7 +77,6 @@ def posts(id):
             return error_response(404, "post with id %s not found (requested from user %d)" %
                                (data["id"], user.id))
         else:
-            print(f"userid: {user.id} postid: {post.id}")
             db.session.add(Favorite(user_id=user.id, post_id=post.id, original_post=post.body))
             db.session.commit()
             return jsonify({"response":"added post!!!"})

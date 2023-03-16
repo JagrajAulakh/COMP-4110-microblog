@@ -263,7 +263,6 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     language = db.Column(db.String(5))
-    # favorited_by = db.relationship('Favorite', backref='post', lazy='dynamic')
     def to_dict(self):
         data = {
             'id': self.id,
