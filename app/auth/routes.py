@@ -17,7 +17,7 @@ import sys
 def login_2fa(id):
     # generating random secret key for authentication
     secret = pyotp.random_base32()
-    return render_template("auth/login_2fac.html", secret=secret)   
+    return render_template("auth/login_2fac.html", secret=secret)
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -35,9 +35,6 @@ def login():
         return redirect(url_for('auth.login_2fa', id = user.id))
     return render_template('auth/login.html', title=_('Sign In'), form=form)
 
-  
-
-
 
 @bp.route("/login/2fa/<int:id>", methods=["POST"])
 def login_2fa_form(id):
@@ -51,8 +48,6 @@ def login_2fa_form(id):
     else:
         flash("You have supplied an invalid 2FA token!", "danger")
         return redirect(url_for("auth.login_2fa"))  
-
-
 
 
 @bp.route('/logout')
