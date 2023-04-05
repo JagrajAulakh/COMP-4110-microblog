@@ -1,10 +1,11 @@
 import pyotp
 
-from locust import HttpUser, task, between
+from locust import FastHttpUser, task, between
 
 
-class PerfUser(HttpUser):
+class PerfUser(FastHttpUser):
     wait_time = between(1, 2)
+    network_timeout = 60.0
 
     @task
     def visit_account_page(self):
