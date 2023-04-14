@@ -204,7 +204,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         try:
             id = jwt.decode(token, current_app.config['SECRET_KEY'],
                             algorithms=['HS256'])['reset_password']
-        except jwt.ExpiredSignatureError:
+        except:
             return
         return User.query.get(id)
 
@@ -299,7 +299,7 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
             'id': self.id,
             'body': self.body,
             'timestamp': self.timestamp,
-            db_user_id: self.user_id,
+            'user_id': self.user_id,
             'language': self.language,
             'likes': self.likes.count()
         }
