@@ -11,6 +11,11 @@ from app.models import User, Post, Message, Notification, Favorite
 from app.translate import translate
 from app.main import bp
 
+redirect_main_index = "main.index"
+main_explore = "main.explore"
+main_user = "main.user"
+
+
 
 @bp.before_app_request
 def before_request():
@@ -36,14 +41,14 @@ def index():
         db.session.add(post)
         db.session.commit()
         flash(_('Your post is now live!'))
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
     page = request.args.get('page', 1, type=int)
     posts = current_user.followed_posts().paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.index', page=posts.next_num) \
+    next_url = url_for(redirect_main_index, page=posts.next_num) \
         if posts.has_next else None
-    prev_url = url_for('main.index', page=posts.prev_num) \
+    prev_url = url_for(redirect_main_index, page=posts.prev_num) \
         if posts.has_prev else None
     return render_template('index.html', title=_('Home'), form=form,
                            posts=posts.items, next_url=next_url,
@@ -57,9 +62,9 @@ def explore():
     posts = Post.query.order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.explore', page=posts.next_num) \
+    next_url = url_for(main_explore, page=posts.next_num) \
         if posts.has_next else None
-    prev_url = url_for('main.explore', page=posts.prev_num) \
+    prev_url = url_for(main_explore, page=posts.prev_num) \
         if posts.has_prev else None
     return render_template('index.html', title=_('Explore'),
                            posts=posts.items, next_url=next_url,
@@ -74,9 +79,9 @@ def user(username):
     posts = user.posts.order_by(Post.timestamp.desc()).paginate(
         page=page, per_page=current_app.config['POSTS_PER_PAGE'],
         error_out=False)
-    next_url = url_for('main.user', username=user.username,
+    next_url = url_for(main_user, username=user.username,
                        page=posts.next_num) if posts.has_next else None
-    prev_url = url_for('main.user', username=user.username,
+    prev_url = url_for(main_user, username=user.username,
                        page=posts.prev_num) if posts.has_prev else None
     form = EmptyForm()
     return render_template('user.html', user=user, posts=posts.items,
@@ -116,16 +121,16 @@ def follow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.index'))
+            return redirect(url_for(redirect_main_index))
         if user == current_user:
             flash(_('You cannot follow yourself!'))
-            return redirect(url_for('main.user', username=username))
+            return redirect(url_for(main_user, username=username))
         current_user.follow(user)
         db.session.commit()
         flash(_('You are following %(username)s!', username=username))
-        return redirect(url_for('main.user', username=username))
+        return redirect(url_for(main_user, username=username))
     else:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
 
 
 @bp.route('/unfollow/<username>', methods=['POST'])
@@ -136,16 +141,16 @@ def unfollow(username):
         user = User.query.filter_by(username=username).first()
         if user is None:
             flash(_('User %(username)s not found.', username=username))
-            return redirect(url_for('main.index'))
+            return redirect(url_for(redirect_main_index))
         if user == current_user:
             flash(_('You cannot unfollow yourself!'))
-            return redirect(url_for('main.user', username=username))
+            return redirect(url_for(main_user, username=username))
         current_user.unfollow(user)
         db.session.commit()
         flash(_('You are not following %(username)s.', username=username))
-        return redirect(url_for('main.user', username=username))
+        return redirect(url_for(main_user, username=username))
     else:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
 
 
 @bp.route('/translate', methods=['POST'])
@@ -160,7 +165,7 @@ def translate_text():
 @login_required
 def search():
     if not g.search_form.validate():
-        return redirect(url_for('main.explore'))
+        return redirect(url_for(main_explore))
     page = request.args.get('page', 1, type=int)
     posts, total = Post.search(g.search_form.q.data, page,
                                current_app.config['POSTS_PER_PAGE'])
@@ -184,7 +189,7 @@ def send_message(recipient):
         user.add_notification('unread_message_count', user.new_messages())
         db.session.commit()
         flash(_('Your message has been sent.'))
-        return redirect(url_for('main.user', username=recipient))
+        return redirect(url_for(main_user, username=recipient))
     return render_template('send_message.html', title=_('Send Message'),
                            form=form, recipient=recipient)
 
@@ -230,7 +235,7 @@ def export_posts():
     else:
         current_user.launch_task('export_posts', _('Exporting posts...'))
         db.session.commit()
-    return redirect(url_for('main.user', username=current_user.username))
+    return redirect(url_for(main_user, username=current_user.username))
 
 
 @bp.route('/notifications')
