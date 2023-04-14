@@ -11,6 +11,9 @@ from app.auth.email import send_password_reset_email
 import pyotp
 import sys
 
+redirect_login_auth = "auth.login"
+redirect_main_index = "main.index"
+
 # 2FA page route
 @bp.route("/login/2fa/<int:id>")
 def login_2fa(id):
@@ -23,7 +26,7 @@ def login():
         user = User.query.filter_by(username=form.username.data).first()
         if user is None or not user.check_password(form.password.data):
             flash(_('Invalid username or password'))
-            return redirect(url_for('auth.login'))
+            return redirect(url_for(redirect_login_auth))
         next_page = request.args.get('next')
         if not next_page or url_parse(next_page).netloc != '':
             next_page = url_for('auth.login_2fa', id = user.id)
@@ -39,7 +42,7 @@ def login_2fa_form(id):
     if pyotp.TOTP(secret).verify(otp):
         login_user(user)
         flash("The TOTP 2FA token is valid", "success")
-        return redirect(url_for("main.index"))
+        return redirect(url_for(redirect_main_index))
     else:
         flash("You have supplied an invalid 2FA token!", "danger")
         return redirect(url_for("auth.login_2fa",  id=id)) 
@@ -47,12 +50,12 @@ def login_2fa_form(id):
 @bp.route('/logout')
 def logout():
     logout_user()
-    return redirect(url_for('main.index'))
+    return redirect(url_for(redirect_main_index))
 
 @bp.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
     form = RegistrationForm()
     if form.validate_on_submit():
         secret = pyotp.random_base32()
@@ -70,7 +73,7 @@ def register():
 @bp.route('/reset_password_request', methods=['GET', 'POST'])
 def reset_password_request():
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
     form = ResetPasswordRequestForm()
     if form.validate_on_submit():
         user = User.query.filter_by(email=form.email.data).first()
@@ -78,7 +81,7 @@ def reset_password_request():
             send_password_reset_email(user)
         flash(
             _('Check your email for the instructions to reset your password'))
-        return redirect(url_for('auth.login'))
+        return redirect(url_for(redirect_login_auth))
     return render_template('auth/reset_password_request.html',
                            title=_('Reset Password'), form=form)
 
@@ -86,14 +89,14 @@ def reset_password_request():
 @bp.route('/reset_password/<token>', methods=['GET', 'POST'])
 def reset_password(token):
     if current_user.is_authenticated:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
     user = User.verify_reset_password_token(token)
     if not user:
-        return redirect(url_for('main.index'))
+        return redirect(url_for(redirect_main_index))
     form = ResetPasswordForm()
     if form.validate_on_submit():
         user.set_password(form.password.data)
         db.session.commit()
         flash(_('Your password has been reset.'))
-        return redirect(url_for('auth.login'))
+        return redirect(url_for(redirect_login_auth))
     return render_template('auth/reset_password.html', form=form)
