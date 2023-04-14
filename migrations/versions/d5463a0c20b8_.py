@@ -27,7 +27,7 @@ def upgrade():
     sa.Column('last_seen', sa.DateTime(), nullable=True),
     sa.Column('token', sa.String(length=32), nullable=True),
     sa.Column('token_expiration', sa.DateTime(), nullable=True),
-    sa.Column('FA_token', sa.String(length=16), nullable=True),
+    sa.Column('fa_token', sa.String(length=16), nullable=True),
     sa.Column('last_message_read_time', sa.DateTime(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('token_expiration')

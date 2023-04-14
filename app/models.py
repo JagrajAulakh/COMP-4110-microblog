@@ -91,7 +91,7 @@ followers = db.Table(
 
 likes = db.Table(
     'likes',
-    db.Column(db_user_id, db.Integer, db.ForeignKey(db_user_id)),
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
     db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
 )
 
