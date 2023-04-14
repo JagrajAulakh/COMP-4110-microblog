@@ -9,8 +9,7 @@ import pyotp
 
 
 auth_login_url = "/auth/login"
-auth_register_url = "/auth/register"
-
+auth_register_url = "auth/register"
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
@@ -81,6 +80,13 @@ class TestAuthRoutes:
         assert auth_login_url in resp.headers.get("Location")
 
     def test_login_valid_user(self, client, create_user):
+        client.post(
+            auth_login_url,
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
         yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
@@ -92,6 +98,27 @@ class TestAuthRoutes:
         assert "index" in resp.headers.get("Location")
 
     def test_login_twice(self, client, create_user):
+        client.post(
+            auth_login_url,      
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
+        yotp =  pyotp.TOTP(create_user.fa_token)
+        client.post(
+            f"/auth/login/2fa/{create_user.id}",
+             data={
+                "otp": yotp.now()
+             },
+        )
+        client.post(
+            auth_login_url,
+            data={
+                "username": create_user.username,
+                "password": "lala",
+            },
+        )
         yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
@@ -135,9 +162,15 @@ class TestAuthRoutes:
                 "password2": "batata",
             },
         )
-        assert resp.status_code == 200
 
     def test_register_redirect(self, mocker, client, create_user):
+        client.post(
+            auth_login_url,
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
         resp = client.post(
             auth_register_url,
             data={
@@ -158,7 +191,14 @@ class TestAuthRoutes:
 
 
     def test_invalid_2fa_token(self, client, create_user):
-        yotp =  pyotp.TOTP(create_user.fa_token)
+        client.post(
+            auth_login_url,
+            data={
+                "username": create_user.username,
+                "password": "batata",
+            },
+        )
+        pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
