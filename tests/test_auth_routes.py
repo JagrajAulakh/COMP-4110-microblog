@@ -93,7 +93,6 @@ class TestAuthRoutes:
 
     def test_login_twice(self, client, create_user):
         yotp =  pyotp.TOTP(create_user.fa_token)
-        yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
@@ -136,15 +135,9 @@ class TestAuthRoutes:
                 "password2": "batata",
             },
         )
+        assert resp.status_code == 200
 
     def test_register_redirect(self, mocker, client, create_user):
-        resp = client.post(
-            auth_login_url,
-            data={
-                "username": create_user.username,
-                "password": "batata",
-            },
-        )
         resp = client.post(
             auth_register_url,
             data={
@@ -165,13 +158,6 @@ class TestAuthRoutes:
 
 
     def test_invalid_2fa_token(self, client, create_user):
-        resp = client.post(
-            auth_login_url,
-            data={
-                "username": create_user.username,
-                "password": "batata",
-            },
-        )
         yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
