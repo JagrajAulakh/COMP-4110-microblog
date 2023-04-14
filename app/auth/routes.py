@@ -37,7 +37,7 @@ def login():
 @bp.route("/login/2fa/<int:id>", methods=["POST"])
 def login_2fa_form(id):
     user = User.query.get(id)
-    secret = user.FA_token
+    secret = user.fa_token
     otp = request.form.get("otp")
     if pyotp.TOTP(secret).verify(otp):
         login_user(user)

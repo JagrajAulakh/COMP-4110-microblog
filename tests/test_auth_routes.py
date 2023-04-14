@@ -7,6 +7,7 @@ from pytest_mock import mocker
 import flask_login
 import pyotp
 
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
@@ -37,13 +38,11 @@ class TestAuthRoutes:
         db.session.commit()
         return u1
 
-
-
     @pytest.fixture()
     def secret(self):
         return "gabagoo"
 
-    def test_two_FA_hopt(self):
+    def test_two_fa_hopt(self):
         import pyotp
         import time
         secret = pyotp.random_base32()
@@ -86,7 +85,7 @@ class TestAuthRoutes:
                 "password": "batata",
             },
         )
-        yotp =  pyotp.TOTP(create_user.FA_token)
+        yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
@@ -104,7 +103,7 @@ class TestAuthRoutes:
                 "password": "batata",
             },
         )
-        yotp =  pyotp.TOTP(create_user.FA_token)
+        yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
@@ -118,7 +117,7 @@ class TestAuthRoutes:
                 "password": "lala",
             },
         )
-        yotp =  pyotp.TOTP(create_user.FA_token)
+        yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
@@ -197,7 +196,7 @@ class TestAuthRoutes:
                 "password": "batata",
             },
         )
-        yotp =  pyotp.TOTP(create_user.FA_token)
+        yotp =  pyotp.TOTP(create_user.fa_token)
         resp = client.post(
             f"/auth/login/2fa/{create_user.id}",
              data={
