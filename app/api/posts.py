@@ -7,6 +7,11 @@ from app.api import bp
 from app.api.auth import token_auth
 
 
+ACTION_1 = "no user with id %s found"
+ACTION_2 = "you do not have permission to post as user %s. You are logged in as user %s"
+ACTION_3 = "must include id field"
+ACTION_4 = "post with id %s not found (requested from user %d)"
+
 # Get all posts by all users
 @bp.route("/posts", methods=["GET"])
 @token_auth.login_required
@@ -22,7 +27,7 @@ def get_posts():
 def posts(id):
     user = User.query.get(id)
     if user is None:
-        return bad_request("no user with id %s found" % id)
+        return bad_request(ACTION_1 % id)
     data = request.get_json() or {}
     # Get all posts by a specific user
     if request.method == "GET":
@@ -34,10 +39,9 @@ def posts(id):
     # Create a post by a specific user
     elif request.method == "POST":
         if "body" not in data:
-            return bad_request("must include body field")
+            return bad_request(ACTION_3)
         if token_auth.current_user().id != user.id:
-            return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
-                               % (user.id, token_auth.current_user().id))
+            return bad_request(ACTION_2 % (user.id, token_auth.current_user().id))
 
         post = Post()
         data['user_id'] = user.id
@@ -54,7 +58,7 @@ def posts(id):
     # Deletes the post
     elif request.method == "DELETE":
         if token_auth.current_user().id != user.id:
-            return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+            return bad_request(ACTION_2
                                % (user.id, token_auth.current_user().id))
         if "id" not in data:
             return bad_request("must include id field")
@@ -73,10 +77,10 @@ def posts(id):
     # Adds post to the user's favorites list
     elif request.method == "FAVORITE":
         if "id" not in data:
-            return bad_request("Must include id field")
+            return bad_request(ACTION_3)
         post = Post.query.get(int(data["id"]))
         if post is None:
-            return error_response(404, "post with id %s not found (requested from user %d)" %
+            return error_response(404, ACTION_4 %
                                (data["id"], user.id))
         else:
             user.favorite(post)
@@ -86,10 +90,10 @@ def posts(id):
     # Removes post from the user's favorites list (does not work for deleted posts)
     elif request.method == "UNFAVORITE":
         if "id" not in data:
-            return bad_request("Must include id field")
+            return bad_request(ACTION_3)
         post = Post.query.get(int(data["id"]))
         if post is None:
-            return error_response(404, "post with id %s not found (requested from user %d)" %
+            return error_response(404, ACTION_4 %
                                (data["id"], user.id))
         else:
             user.unfavorite(post)
@@ -99,10 +103,10 @@ def posts(id):
     # Removes DELETED post from the user's favorites list        
     elif request.method == "UNFAVORITE_DELETED_POST":
         if "id" not in data:
-            return bad_request("Must include id field")
+            return bad_request(ACTION_3)
         fave_post = user.favorites.filter_by(post_id=int(data["id"])).first()
         if fave_post is None:
-            return error_response(404, "post with id %s not found (requested from user %d)" %
+            return error_response(404, ACTION_4 %
                                (data["id"], user.id))
         else:
             db.session.delete(fave_post)
@@ -114,13 +118,13 @@ def like_post(id):
 
     user = User.query.get(id)
     if user is None:
-        return bad_request("no user with id %s found" % id)
+        return bad_request(ACTION_1 % id)
 
     data = request.get_json() or {}
     if 'post_id' not in data:
         return bad_request("must include id field")
     if token_auth.current_user().id != user.id:
-        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+        return bad_request(ACTION_2
                            % (user.id, token_auth.current_user().id))
 
 
@@ -142,9 +146,9 @@ def unlike_post(id):
 
     user = User.query.get(id)
     if user is None:
-        return bad_request("no user with id %s found" % id)
+        return bad_request(ACTION_1 % id)
     if token_auth.current_user().id != user.id:
-        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
+        return bad_request(ACTION_2
                            % (user.id, token_auth.current_user().id))
 
 
@@ -168,10 +172,9 @@ def post_toggle_like(id):
 
     user = User.query.get(id)
     if user is None:
-        return bad_request("no user with id %s found" % id)
+        return bad_request(ACTION_1 % id)
     if token_auth.current_user().id != user.id:
-        return bad_request("you do not have permission to post as user %s. You are logged in as user %s"
-                           % (user.id, token_auth.current_user().id))
+        return bad_request(ACTION_2 % (user.id, token_auth.current_user().id))
 
     post = Post.query.get(int(data["post_id"]))
 

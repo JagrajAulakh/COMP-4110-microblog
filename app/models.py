@@ -13,6 +13,7 @@ import jwt
 from app import db, login
 from app.search import add_to_index, remove_from_index, query_index
 
+db_user_id = 'user.id'
 
 class SearchableMixin(object):
     @classmethod
@@ -84,13 +85,13 @@ class PaginatedAPIMixin(object):
 
 followers = db.Table(
     'followers',
-    db.Column('follower_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('followed_id', db.Integer, db.ForeignKey('user.id'))
+    db.Column('follower_id', db.Integer, db.ForeignKey(db_user_id)),
+    db.Column('followed_id', db.Integer, db.ForeignKey(db_user_id))
 )
 
 likes = db.Table(
     'likes',
-    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column(db_user_id, db.Integer, db.ForeignKey(db_user_id)),
     db.Column('post_id', db.Integer, db.ForeignKey('post.id'))
 )
 
@@ -104,7 +105,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     last_seen = db.Column(db.DateTime, default=datetime.utcnow)
     token = db.Column(db.String(32), index=True, unique=True)
     token_expiration = db.Column(db.DateTime, unique = True)
-    FA_token = db.Column(db.String(16))
+    fa_token = db.Column(db.String(16))
     followed = db.relationship(
         'User', secondary=followers,
         primaryjoin=(followers.c.follower_id == id),
@@ -149,8 +150,8 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
     def __repr__(self):
         return '<User {}>'.format(self.username)
     
-    def set_two_FA(self, FA_token):
-        self.FA_token = FA_token
+    def set_two_FA(self, fa_token):
+        self.fa_token = fa_token
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
@@ -203,7 +204,7 @@ class User(UserMixin, PaginatedAPIMixin, db.Model):
         try:
             id = jwt.decode(token, current_app.config['SECRET_KEY'],
                             algorithms=['HS256'])['reset_password']
-        except:
+        except jwt.ExpiredSignatureError:
             return
         return User.query.get(id)
 
@@ -290,19 +291,15 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
     language = db.Column(db.String(5))
-    # likes = db.relationship('User', secondary="likes",
-    #                         primaryjoin=(likes.c.user_id == user_id),
-    #                         secondaryjoin=(likes.c.post_id == id),
-    #                         backref=db.backref('liked', lazy='dynamic'),lazy='dynamic')
 
     def to_dict(self):
         data = {
             'id': self.id,
             'body': self.body,
             'timestamp': self.timestamp,
-            'user_id': self.user_id,
+            db_user_id: self.user_id,
             'language': self.language,
             'likes': self.likes.count()
         }
@@ -319,8 +316,8 @@ class Post(SearchableMixin, PaginatedAPIMixin, db.Model):
 
 class Message(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    sender_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-    recipient_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    sender_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
+    recipient_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
     body = db.Column(db.String(140))
     timestamp = db.Column(db.DateTime, index=True, default=datetime.utcnow)
 
@@ -331,7 +328,7 @@ class Message(db.Model):
 class Notification(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(128), index=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
     timestamp = db.Column(db.Float, index=True, default=time)
     payload_json = db.Column(db.Text)
 
@@ -343,7 +340,7 @@ class Task(db.Model):
     id = db.Column(db.String(36), primary_key=True)
     name = db.Column(db.String(128), index=True)
     description = db.Column(db.String(128))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
     complete = db.Column(db.Boolean, default=False)
 
     def get_rq_job(self):
@@ -360,6 +357,6 @@ class Task(db.Model):
 # class for favorites table
 class Favorite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey(db_user_id))
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
     original_post = db.Column(db.String(140), db.ForeignKey('post.body'))
