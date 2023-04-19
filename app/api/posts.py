@@ -61,7 +61,7 @@ def posts(id):
             return bad_request(ACTION_2
                                % (user.id, token_auth.current_user().id))
         if "id" not in data:
-            return bad_request("must include id field")
+            return bad_request(ACTION_3)
 
         post = user.posts.filter_by(id=int(data["id"])).first()
         if post is None:
@@ -122,7 +122,7 @@ def like_post(id):
 
     data = request.get_json() or {}
     if 'post_id' not in data:
-        return bad_request("must include id field")
+        return bad_request(ACTION_3)
     if token_auth.current_user().id != user.id:
         return bad_request(ACTION_2
                            % (user.id, token_auth.current_user().id))
@@ -142,7 +142,7 @@ def like_post(id):
 def unlike_post(id):
     data = request.get_json() or {}
     if 'post_id' not in data:
-        return bad_request("must include id field")
+        return bad_request(ACTION_3)
 
     user = User.query.get(id)
     if user is None:
@@ -168,7 +168,7 @@ def post_toggle_like(id):
 
     data = request.get_json() or {}
     if 'post_id' not in data:
-        return bad_request("must include id field")
+        return bad_request(ACTION_3)
 
     user = User.query.get(id)
     if user is None:
