@@ -162,6 +162,7 @@ class TestAuthRoutes:
                 "password2": "batata",
             },
         )
+        assert resp.status_code == 200
 
     def test_register_redirect(self, mocker, client, create_user):
         client.post(
@@ -207,7 +208,6 @@ class TestAuthRoutes:
         )
         assert resp.status_code == 302
         assert "2fa" in resp.headers.get("Location")
-
 
     def test_2fa_redirect(self, client, create_user):
         resp = client.post(

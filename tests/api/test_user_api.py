@@ -3,6 +3,9 @@ from app import create_app, db
 from app.models import User
 from config import Config
 
+api_users_num = "/api/users/%d"
+api_users = "/api/users"
+
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
@@ -17,7 +20,6 @@ class TestUserModel:
         self.app_context.push()
         self.app_text_request_context.push()
         db.create_all()
-        # self.app.test_client_class = TestClient
         self.client = self.app.test_client()
         yield
         db.session.remove()
@@ -39,13 +41,6 @@ class TestUserModel:
         db.session.commit()
         yield user
 
-    # @pytest.fixture()
-    # def post1(self, new_user):
-    #     p = Post(user_id=new_user.id, body="This is the body of my post!")
-    #     db.session.add(p)
-    #     db.session.commit()
-    #     yield p
-
     @pytest.fixture()
     def headers(self, user1):
         headers = {"Authorization": "Bearer {}".format(user1.get_token())}
@@ -53,7 +48,7 @@ class TestUserModel:
 
     def test_get_user(self, user1, headers):
         response = self.client.get(
-                "/api/users/%d" % user1.id,
+                api_users_num % user1.id,
                 headers=headers
                 )
 
@@ -86,7 +81,7 @@ class TestUserModel:
 
 
     def test_create_user_valid(self):
-        response = self.client.post("/api/users", json={
+        response = self.client.post(api_users, json={
             'username': 'joemama420',
             'email': 'urmom@joemama.com',
             'password': 'mamajoe'
@@ -97,7 +92,7 @@ class TestUserModel:
         assert User.query.get(response.get_json()['id'])
 
     def test_create_user_no_email(self):
-        response = self.client.post("/api/users", json={
+        response = self.client.post(api_users, json={
             'username': 'joemama420',
             'password': 'mamajoe'
             })
@@ -105,7 +100,7 @@ class TestUserModel:
         assert response.status_code == 400
 
     def test_create_user_username_already_exists(self, user1):
-        response = self.client.post("/api/users", json={
+        response = self.client.post(api_users, json={
             'username': user1.username,
             'email': 'urmom@joemama.com',
             'password': 'mamajoe'
@@ -114,7 +109,7 @@ class TestUserModel:
         assert response.status_code == 400
 
     def test_create_user_email_already_exists(self, user1):
-        response = self.client.post("/api/users", json={
+        response = self.client.post(api_users, json={
             'username': 'joemama420',
             'email': user1.email,
             'password': 'mamajoe'
@@ -123,7 +118,7 @@ class TestUserModel:
         assert response.status_code == 400
 
     def test_update_user_username(self, user1, headers):
-        response = self.client.put("/api/users/%d" % user1.id, json={
+        response = self.client.put(api_users_num % user1.id, json={
             'username': 'legend27',
             }, headers=headers)
 
@@ -133,7 +128,7 @@ class TestUserModel:
 
 
     def test_update_user_invalid_user_token(self, user2, headers):
-        response = self.client.put("/api/users/%d" % user2.id, json={
+        response = self.client.put(api_users_num % user2.id, json={
             'username': 'legend27',
             }, headers=headers)
 
