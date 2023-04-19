@@ -5,12 +5,14 @@ from app.models import User, Post
 from app.api.auth import token_auth
 from config import Config
 
+api_posts_num = "/api/posts/%d"
+api_post_like = "/api/post/like/%d"
+api_post_unlike = "/api/post/unlike/%d"
 
 class TestConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite://"
     ELASTICSEARCH_URL = None
-
 
 class TestPostAPI:
     @pytest.fixture(autouse=True)
@@ -21,7 +23,6 @@ class TestPostAPI:
         self.app_context.push()
         self.app_text_request_context.push()
         db.create_all()
-        # self.app.test_client_class = TestClient
         self.client = self.app.test_client()
         yield
         db.session.remove()
@@ -81,7 +82,7 @@ class TestPostAPI:
 
     def test_get_post_valid_user(self, user1, headers):
         response = self.client.get(
-            "/api/posts/%d" % user1.id,
+            api_posts_num % user1.id,
             headers=headers,
         )
         assert response.status_code == 200
@@ -102,7 +103,7 @@ class TestPostAPI:
         old_len = len(Post.query.all())
 
         response = self.client.post(
-            "/api/posts/%d" % user1.id,
+            api_posts_num % user1.id,
             json={"body": "This is a test post by user 1"},
             headers=headers,
         )
@@ -113,7 +114,7 @@ class TestPostAPI:
     def test_post_post_no_body(self, user1, headers):
         old_len = len(Post.query.all())
         response = self.client.post(
-            "/api/posts/%d" % user1.id,
+            api_posts_num % user1.id,
             headers=headers,
         )
 
@@ -124,7 +125,7 @@ class TestPostAPI:
         assert user1.id != user2.id
 
         response = self.client.post(
-            "/api/posts/%d" % user2.id,
+            api_posts_num % user2.id,
             json={
                 "body": "I'm posting as another user that I am not authorized to post as"
             },
@@ -167,7 +168,7 @@ class TestPostAPI:
         assert user1.id != user2.id
 
         response = self.client.delete(
-            "/api/posts/%d" % user2.id,
+            api_posts_num % user2.id,
             json={"id": post1.id},
             headers=headers,
         )
@@ -176,7 +177,7 @@ class TestPostAPI:
 
     def test_delete_post_invalid_post_id(self, user1, headers):
         response = self.client.delete(
-            "/api/posts/%d" % user1.id,
+            api_posts_num % user1.id,
             json={"id": 1000},
             headers=headers,
         )
@@ -184,14 +185,14 @@ class TestPostAPI:
         assert response.status_code == 404
 
     def test_like_post_no_post_id_in_body(self, user1, headers):
-        response = self.client.post("/api/post/like/%d" % user1.id, headers=headers)
+        response = self.client.post(api_post_like % user1.id, headers=headers)
         assert response.status_code == 400
 
     def test_like_post_valid_user(self, user1, post1, headers):
         old_likes = post1.likes.count()
 
         response = self.client.post(
-            "/api/post/like/%d" % user1.id, json={"post_id": post1.id}, headers=headers
+            api_post_like % user1.id, json={"post_id": post1.id}, headers=headers
         )
 
         assert response.status_code == 200
@@ -202,12 +203,12 @@ class TestPostAPI:
         old_likes = post1.likes.count()
 
         response1 = self.client.post(
-            "/api/post/like/%d" % user1.id, json={"post_id": post1.id}, headers=headers
+            api_post_like % user1.id, json={"post_id": post1.id}, headers=headers
         )
         assert response1.status_code == 200
 
         response2 = self.client.post(
-            "/api/post/like/%d" % user1.id, json={"post_id": post1.id}, headers=headers
+            api_post_like % user1.id, json={"post_id": post1.id}, headers=headers
         )
         assert response2.status_code == 200
         assert post1.likes.count() == old_likes + 1
@@ -221,20 +222,20 @@ class TestPostAPI:
 
     def test_like_post_wrong_user_token(self, user2, post1, headers):
         response = self.client.post(
-            "/api/post/like/%d" % user2.id, json={"post_id": post1.id}, headers=headers
+            api_post_like % user2.id, json={"post_id": post1.id}, headers=headers
         )
 
         assert response.status_code == 400
 
     def test_unlike_post_no_post_id_in_body(self, user1, headers):
-        response = self.client.post("/api/post/unlike/%d" % user1.id, headers=headers)
+        response = self.client.post(api_post_unlike % user1.id, headers=headers)
         assert response.status_code == 400
 
     def test_unlike_post_valid_user(self, user1, post1, headers):
         user1.like(post1)
         old_likes = post1.likes.count()
         response = self.client.post(
-            "/api/post/unlike/%d" % user1.id,
+            api_post_unlike % user1.id,
             json={"post_id": post1.id},
             headers=headers,
         )
@@ -247,14 +248,14 @@ class TestPostAPI:
         old_likes = post1.likes.count()
 
         response1 = self.client.post(
-            "/api/post/unlike/%d" % user1.id,
+            api_post_unlike % user1.id,
             json={"post_id": post1.id},
             headers=headers,
         )
         assert response1.status_code == 200
 
         response2 = self.client.post(
-            "/api/post/unlike/%d" % user1.id,
+            api_post_unlike % user1.id,
             json={"post_id": post1.id},
             headers=headers,
         )
@@ -270,7 +271,7 @@ class TestPostAPI:
 
     def test_unlike_post_wrong_user_token(self, user2, post1, headers):
         response = self.client.post(
-            "/api/post/unlike/%d" % user2.id,
+            api_post_unlike % user2.id,
             json={"post_id": post1.id},
             headers=headers,
         )
@@ -288,7 +289,7 @@ class TestPostAPI:
         assert response.status_code == 200
         assert post1.likes.count() == old_likes + 1
 
-        response = self.client.post(
+        self.client.post(
             "api/post/toggle-like/%d" % user1.id,
             json={"post_id": post1.id},
             headers=headers,
